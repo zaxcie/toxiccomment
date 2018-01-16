@@ -6,7 +6,7 @@ from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
 from keras.preprocessing import text, sequence
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 
-from src.models.keras_zoo import get_CNN_model
+from src.models.keras_zoo import get_CNN_model, get_ensemble_NN_model, get_CNN_LSTM_model
 
 from datetime import datetime
 import os
@@ -17,6 +17,7 @@ os.mkdir(model_dir + model_name)  # Create the folder of the model
 
 max_features = 50000
 maxlen = 200
+number_filters = 200
 
 train = pd.read_csv("data/processed/train_split_80.csv")
 val = pd.read_csv("data/processed/val_split_80.csv")
@@ -47,7 +48,12 @@ X_t = sequence.pad_sequences(list_tokenized_train, maxlen=maxlen)
 X_val = sequence.pad_sequences(list_tokenized_val, maxlen=maxlen)
 X_te = sequence.pad_sequences(list_tokenized_test, maxlen=maxlen)
 
-model = get_model()
+
+# X_t = X_t.reshape((X_t.shape[0], 1, X_t.shape[1]))
+# X_val = X_val.reshape((X_val.shape[0], 1, X_val.shape[1]))
+# X_te = X_te.reshape((X_te.shape[0], 1, X_te.shape[1]))
+
+model = get_CNN_LSTM_model(maxlen, max_features, number_filters)
 batch_size = 64
 epochs = 1000
 

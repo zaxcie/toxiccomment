@@ -1,42 +1,42 @@
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Dense, Input, Conv2D, Embedding, Dropout, Activation
+from keras.layers import Dense, Input, Conv2D, Embedding, Dropout, Activation, TimeDistributed, Conv1D, Concatenate
 from keras.layers import Bidirectional, MaxPooling1D, MaxPooling2D, Reshape, Flatten, concatenate, BatchNormalization, LSTM, GlobalMaxPool1D
 from keras.models import Model
 from keras import initializers, regularizers, constraints, optimizers, layers, backend
 
 
 def get_CNN_model(maxlen, max_features, embed_size, number_filters):
-    inp = Input(shape=(maxlen, ))
+    inp = Input(shape=(1, maxlen, ))
     x = Embedding(max_features, embed_size)(inp)
-    x1 = Conv2D(number_filters, (3, embed_size))(x)
+    x1 = Conv2D(number_filters, (3, embed_size), data_format='channels_first')(x)
     x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
-    x1 = MaxPooling2D((int(int(x1.shape[2]) / 1.5), 1))(x1)
+    x1 = MaxPooling2D((int(int(x1.shape[2]) / 1.5), 1), data_format='channels_first')(x1)
     x1 = Flatten()(x1)
 
-    x2 = Conv2D(number_filters, (4, embed_size))(x)
+    x2 = Conv2D(number_filters, (4, embed_size), data_format='channels_first')(x)
     x2 = BatchNormalization()(x2)
     x2 = Activation('elu')(x2)
-    x2 = MaxPooling2D((int(int(x2.shape[2]) / 1.5), 1))(x2)
+    x2 = MaxPooling2D((int(int(x2.shape[2]) / 1.5), 1), data_format='channels_first')(x2)
     x2 = Flatten()(x2)
 
-    x3 = Conv2D(number_filters, (5, embed_size))(x)
+    x3 = Conv2D(number_filters, (5, embed_size), data_format='channels_first')(x)
     x3 = BatchNormalization()(x3)
     x3 = Activation('relu')(x3)
-    x3 = MaxPooling2D((int(int(x3.shape[2]) / 1.5), 1))(x3)
+    x3 = MaxPooling2D((int(int(x3.shape[2]) / 1.5), 1), data_format='channels_first')(x3)
     x3 = Flatten()(x3)
 
-    x4 = Conv2D(number_filters, (6, embed_size))(x)
+    x4 = Conv2D(number_filters, (6, embed_size), data_format='channels_first')(x)
     x4 = BatchNormalization()(x4)
     x4 = Activation('elu')(x4)
-    x4 = MaxPooling2D((int(int(x4.shape[2]) / 1.5), 1))(x4)
+    x4 = MaxPooling2D((int(int(x4.shape[2]) / 1.5), 1), data_format='channels_first')(x4)
     x4 = Flatten()(x4)
 
-    x5 = Conv2D(number_filters, (7, embed_size))(x)
+    x5 = Conv2D(number_filters, (7, embed_size), data_format='channels_first')(x)
     x5 = BatchNormalization()(x5)
     x5 = Activation('relu')(x5)
-    x5 = MaxPooling2D((int(int(x5.shape[2]) / 1.5), 1))(x5)
+    x5 = MaxPooling2D((int(int(x5.shape[2]) / 1.5), 1), data_format='channels_first')(x5)
     x5 = Flatten()(x5)
 
     x = concatenate([x1, x2, x3, x4, x5])
@@ -70,11 +70,19 @@ def get_CNN_LSTM_model(maxlen, max_features, number_filters, embed_size=64):
     inp = Input(shape=(maxlen, ))
     x = Embedding(max_features, embed_size)(inp)
 
-    x = Conv2D(number_filters, (5, embed_size))(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D((int(int(x.shape[2]) / 1.5), 1))(x)
-    x = Flatten()(x)
+    convs = []
+
+    for i, k_size in enumerate([1, 3, 5, 7]):
+        conv = Conv1D(filters=128, kernel_size=k_size, padding='same',
+                      activation='relu')(x)
+        convs.append(conv)
+
+    x = Concatenate()(convs)
+    x = MaxPooling1D()(x)
+
+    x = Conv1D(filters=128, kernel_size=3, padding='same',
+               activation='relu')(x)
+    x = MaxPooling1D()(x)
 
     x = Bidirectional(LSTM(128, return_sequences=True))(x)
     x = GlobalMaxPool1D()(x)
@@ -93,7 +101,7 @@ def get_CNN_LSTM_model(maxlen, max_features, number_filters, embed_size=64):
 
 
 def get_ensemble_NN_model(maxlen, max_features, number_filters, embed_size=64):
-    inp = Input(shape=(maxlen, ))
+    inp = Input(shape=(maxlen, 1, ))
     x = Embedding(max_features, embed_size)(inp)
 
     x1 = Conv2D(number_filters, (5, embed_size))(x)
@@ -112,19 +120,19 @@ def get_ensemble_NN_model(maxlen, max_features, number_filters, embed_size=64):
     x2 = Dropout(0.2)(x2)
     x2 = Dense(50, activation="relu")(x2)
 
-    x3 = Conv2D(number_filters, (5, embed_size))(x)
+    x3 = Conv2D(number_filters, (2, embed_size))(x)
     x3 = BatchNormalization()(x3)
     x3 = Activation('relu')(x3)
     x3 = MaxPooling2D((int(int(x3.shape[2]) / 1.5), 1))(x3)
     x3 = Flatten()(x3)
 
-    x4 = Conv2D(number_filters, (6, embed_size))(x)
+    x4 = Conv2D(number_filters, (4, embed_size))(x)
     x4 = BatchNormalization()(x4)
     x4 = Activation('elu')(x4)
     x4 = MaxPooling2D((int(int(x4.shape[2]) / 1.5), 1))(x4)
     x4 = Flatten()(x4)
 
-    x5 = Conv2D(number_filters, (7, embed_size))(x)
+    x5 = Conv2D(number_filters, (6, embed_size))(x)
     x5 = BatchNormalization()(x5)
     x5 = Activation('relu')(x5)
     x5 = MaxPooling2D((int(int(x5.shape[2]) / 1.5), 1))(x5)
