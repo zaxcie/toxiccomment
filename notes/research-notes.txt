@@ -1,0 +1,39 @@
+January 6 notes
+    # TODO data exploration
+        - Look at class distribution
+            - Most of the comment in train have 0 toxicity label
+            - Some comment can have all 6 labels
+        - Look at importance words for every classes
+            WordCloud.ipynb
+            Seems like people like to type some word 2 times (KILL KILL, NIGGER NIGGER, ...)
+    # TODO feature exploration
+        LSTM feature
+            Look at how much feature we want to keep AKA most common words
+            Look at max length of a sequence
+
+    # IDEA Could do first a binary classification if comment have label and then predict every label
+    # IDEA about standard feature
+        - Presence of popular word in a classe that are not popular overall
+        - Presence of a WIKI bracket [ WIKI something]
+        - Presence of Markdown style
+            I guess people that comment rude things won't take time to format a message?.. Even if people can be crazy
+
+    # Note Regarding the corpus
+        Contain links
+        Contain machine understanding character (ex. [WIKI_LINK: Wikipedia:How to edit a page@edit a page])
+            # TODO remove that from training data? Not clear it's gonna help tho
+
+    It's interesting to see that Wikipedia comments are kind of a communities. People meet in real life and chat on IRC.
+    Trace of these things are left in some comments.
+
+    Next steps:
+        - Create a first Keras LSTM model based on words. I'm curious to see if it can do the job...
+            0.051 which is about half the leaderboard. Seems interesting...
+            It was a bidirectionnal
+
+    # TODO choose a sequence length
+    # TODO choose a number of feature
+        Should look at plot, same as length
+        Should also take care of populare word in category
+
+

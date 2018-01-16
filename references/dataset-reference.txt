@@ -1,0 +1,3 @@
+data/processed/train_split_80.csv
+    Created with data/split_val with 966 seed. No fancy sampling. Just random sampling
+data/processed/train_split_80.csv

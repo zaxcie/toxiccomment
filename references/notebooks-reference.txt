@@ -1,0 +1,8 @@
+Here is some quick notes about Notebooks. Because some of my notebooks are workspace, some are result presentation and
+some reusable, here is a glossery of what notebooks contain
+
+    Notebooks
+        exploration.ipynb
+            A workspace that can contain anything...
+        WordCloud.ipynb
+            WordCloud and word frequency for the whole corpus and for every classes.
