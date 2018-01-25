@@ -3,64 +3,59 @@ import numpy as np
 from sklearn import *
 from datetime import datetime
 import os
+from src.utils import get_standard_parser, write_comment
 
-
-model_dir = "/Users/kforest/Documents/workspace/toxiccomment/models/"
+model_dir = "../../models/"
 model_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # Name of the folder.
 os.mkdir(model_dir + model_name)  # Create the folder of the model
+
+# TODO don't hard code model dir and data dir. Ok for now.
+
+options, args = get_standard_parser()
+DATA_DIR = options.data_dir
+MODEL_DIR = options.model_dir
+MODEL_COMMENT = options.comment
+
+if MODEL_COMMENT == "":
+    MODEL_COMMENT = input("Comment about the model to produce ")
+
+write_comment(MODEL_COMMENT, MODEL_DIR, model_name)
 
 print("Load data")
 
 train = pd.read_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/train_split_80.csv")
-val = pd.read_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/val_split_80.csv")
 test = pd.read_csv("/Users/kforest/Documents/workspace/toxiccomment/data/raw/test.csv")
+val = pd.read_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/val_split_80.csv")
 
-max_features = 20000
+list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
-y_col = [c for c in train.columns if c not in ['id', 'comment_text']]
-y_train = train[y_col]
-y_val = train[y_col]
-
+coly = [c for c in train.columns if c not in ['id', 'comment_text']]
+y_train = train[coly]
+y_val = val[coly]
 tid = test['id'].values
 
-df = pd.concat([train['comment_text'], val['comment_text'], test['comment_text']], axis=0)
+df = pd.concat([train['comment_text'], test['comment_text']], axis=0)
 df = df.fillna("unknown")
-nrow = train.shape[0]
-val_nrow = val.shape[0]
+nrow_train = train.shape[0]
+nrow_val = val.shape[0]
 
-print("TFIDF")
+nrow_reach_val = nrow_train + nrow_val
 
-tfidf = feature_extraction.text.TfidfVectorizer(stop_words='english', max_features=max_features)
+tfidf = feature_extraction.text.TfidfVectorizer(stop_words='english', max_features=50000)
 data = tfidf.fit_transform(df)
 
-print("Training")
+train_df = data[:nrow_train]
+val_df = data[nrow_train:nrow_reach_val]
+test_df = data[nrow_reach_val:]
 
-model = ensemble.ExtraTreesClassifier(n_jobs=1, random_state=966, verbose=1)
-model.fit(data[:nrow], y_train)
+model = ensemble.ExtraTreesClassifier(n_jobs=-1, random_state=3, verbose=1,
+                                      n_estimators=80)
+model.fit(train_df, y_train)
 
-print(1 - model.score(data[:nrow], y_train))
+val_output = model.predict(val_df)
+test_output = model.predict_proba(test_df)
 
-# Validation
-print("Validation")
-val_out = pd.DataFrame(model.predict(data[nrow:(nrow + val_nrow)]))
-val_out.columns = y_col
+for i in range(6):
+    loss = np.asarray(metrics.log_loss(y_val[list_classes[i]], val_output[i])).mean()
 
-mean_cross_entropy = []
-for c in y_col:
-    val_out[c] = val_out[c].clip(0 + 1e12, 1 - 1e12)
-    mean_cross_entropy.append(metrics.log_loss(y_val[c], val_out[c]))
-
-mean_cross_entropy = np.asarray(mean_cross_entropy)
-
-print(mean_cross_entropy.mean())
-
-# Submission
-print("Submission generation")
-sub = pd.DataFrame(model.predict(data[(nrow + val_nrow - 1):]))
-sub.columns = y_col
-sub['id'] = tid
-
-for c in y_col:
-    sub[c] = sub[c].clip(0+1e12, 1-1e12)
-
-sub.to_csv(model_dir + model_name + '/submission.csv', index=False)
+print(loss)

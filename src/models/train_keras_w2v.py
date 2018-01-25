@@ -6,7 +6,10 @@ from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
 from keras.preprocessing import text, sequence
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 
-from src.models.keras_zoo import get_CNN_model, get_ensemble_NN_model, get_CNN_LSTM_model
+from src.models.keras_zoo import get_CNN_model, get_ensemble_NN_model, get_CNN_LSTM_model, get_GRU_model
+from src.features.config import NODEF_TOKEN, NULL_TOKEN, NODEF_TOKEN_VEC_VALUE, NULL_TOKEN_VEC_VALUE, SEQ_LENGTH, W2V_SIZE
+from src.features.embedding import *
+from gensim.models import KeyedVectors
 
 from datetime import datetime
 import os
@@ -15,9 +18,6 @@ model_dir = "/Users/kforest/Documents/workspace/toxiccomment/models/"
 model_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # Name of the folder.
 os.mkdir(model_dir + model_name)  # Create the folder of the model
 
-max_features = 50000
-maxlen = 400
-number_filters = 200
 
 train = pd.read_csv("../../data/processed/train_split_80.csv")
 val = pd.read_csv("../../data/processed/val_split_80.csv")
@@ -25,38 +25,26 @@ test = pd.read_csv("../../data/raw/test.csv")
 
 list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
-list_sentences_train = train["comment_text"].fillna("zaxcie").values
+list_sentences_train = train["comment_text"].fillna(NULL_TOKEN).values
 y_train = train[list_classes].values
 
-list_sentences_val = val["comment_text"].fillna("zaxcie").values
+list_sentences_val = val["comment_text"].fillna(NULL_TOKEN).values
 y_val = val[list_classes].values
 
-list_sentences_test = test["comment_text"].fillna("zaxcie").values
+list_sentences_test = test["comment_text"].fillna(NULL_TOKEN).values
 
+en_model = KeyedVectors.load_word2vec_format('/Users/kforest/Documents/workspace/toxiccomment/data/external/wiki.en.vec')
+indexes, space = get_embeding_space()
 
-tokenizer_train = text.Tokenizer(num_words=max_features)
-tokenizer_train.fit_on_texts(list(list_sentences_train))
+train["formatted_comment"] = train['comment_text'].apply(lambda x: embed_sentence(x, en_model))
 
-tokenizer_val = text.Tokenizer(num_words=max_features)
-tokenizer_val.fit_on_texts(list(list_sentences_val))
+X_t = np.asarray(train["formatted_comment"].tolist())
 
-list_tokenized_train = tokenizer_train.texts_to_sequences(list_sentences_train)
-list_tokenized_val = tokenizer_train.texts_to_sequences(list_sentences_val)
-list_tokenized_test = tokenizer_train.texts_to_sequences(list_sentences_test)
-
-X_t = sequence.pad_sequences(list_tokenized_train, maxlen=maxlen)
-X_val = sequence.pad_sequences(list_tokenized_val, maxlen=maxlen)
-X_te = sequence.pad_sequences(list_tokenized_test, maxlen=maxlen)
-
-
-# X_t = X_t.reshape((X_t.shape[0], 1, X_t.shape[1]))
-# X_val = X_val.reshape((X_val.shape[0], 1, X_val.shape[1]))
-# X_te = X_te.reshape((X_te.shape[0], 1, X_te.shape[1]))
-
-model = get_CNN_LSTM_model(maxlen, max_features, number_filters, 300)
+model = get_GRU_model(SEQ_LENGTH, space.shape[0], space.shape[1], space)
 batch_size = 256
 epochs = 1000
 
+model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs)
 
 file_path = model_dir + model_name + "/weights_base.best.hdf5"
 

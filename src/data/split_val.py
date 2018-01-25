@@ -22,5 +22,5 @@ if __name__ == '__main__':
 
     train, val = train_val_split(data, 0.8)
 
-    train.to_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/train_split_80.csv")
-    val.to_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/val_split_80.csv")
+    train.to_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/train_split_80.csv", index=False)
+    val.to_csv("/Users/kforest/Documents/workspace/toxiccomment/data/processed/val_split_80.csv", index=False)

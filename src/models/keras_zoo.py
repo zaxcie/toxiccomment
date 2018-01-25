@@ -1,7 +1,7 @@
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Dense, Input, Conv2D, Embedding, Dropout, Activation, TimeDistributed, Conv1D, Concatenate
-from keras.layers import Bidirectional, MaxPooling1D, MaxPooling2D, Reshape, Flatten, concatenate, BatchNormalization, LSTM, GlobalMaxPool1D
+from keras.layers import Bidirectional, MaxPooling1D, MaxPooling2D, Reshape, Flatten, concatenate, BatchNormalization, LSTM, GlobalMaxPool1D, GRU
 from keras.models import Model
 from keras import initializers, regularizers, constraints, optimizers, layers, backend
 
@@ -49,8 +49,7 @@ def get_CNN_model(maxlen, max_features, embed_size, number_filters):
 
 def get_LSTM_model(maxlen, max_features, embed_size=64):
     inp = Input(shape=(maxlen, ))
-    x = Embedding(max_features, embed_size)(inp)
-    x = Bidirectional(LSTM(128, return_sequences=True))(x)
+    x = Bidirectional(LSTM(128, return_sequences=True))(inp)
     x = GlobalMaxPool1D()(x)
     x = Dropout(0.2)(x)
     x = Dense(50, activation="relu")(x)
@@ -66,10 +65,28 @@ def get_LSTM_model(maxlen, max_features, embed_size=64):
     return model
 
 
-def get_CNN_LSTM_model(maxlen, max_features, number_filters, embed_size=64):
+def get_GRU_model(maxlen, max_features, embed_size, embed_weights, train_embed=False):
+    inp = Input(shape=(maxlen, ))
+    x = Embedding(max_features, embed_size, trainable=train_embed)(inp)
+    x = Bidirectional(GRU(64, return_sequences=True))(x)
+    x = Dropout(0.2)(x)
+    x = Bidirectional(GRU(64, return_sequences=False))(x)
+    x = Dense(32, activation="relu")(x)
+    x = Dense(6, activation="sigmoid")(x)
+
+    model = Model(inputs=inp, outputs=x)
+
+    model.compile(loss='binary_crossentropy',
+                  optimizer='RMSprop',
+                  metrics=['accuracy'])
+
+    return model
+
+
+def get_CNN_LSTM_model(maxlen, max_features, number_filters, embed_size=300):
     inp = Input(shape=(maxlen, ))
     x = Embedding(max_features, embed_size)(inp)
-
+    x = Dropout(0.2)(x)
     convs = []
 
     for i, k_size in enumerate([1, 3, 5, 7]):
@@ -80,7 +97,7 @@ def get_CNN_LSTM_model(maxlen, max_features, number_filters, embed_size=64):
     x = Concatenate()(convs)
     x = MaxPooling1D()(x)
 
-    x = Conv1D(filters=128, kernel_size=3, padding='same',
+    x = Conv1D(filters=64, kernel_size=3, padding='same',
                activation='relu')(x)
     x = MaxPooling1D()(x)
 
@@ -94,7 +111,7 @@ def get_CNN_LSTM_model(maxlen, max_features, number_filters, embed_size=64):
     model = Model(inputs=inp, outputs=x)
 
     model.compile(loss='binary_crossentropy',
-                  optimizer='adam',
+                  optimizer='rmsprop',
                   metrics=['accuracy'])
 
     return model
@@ -147,3 +164,39 @@ def get_ensemble_NN_model(maxlen, max_features, number_filters, embed_size=64):
                   metrics=['accuracy'])
 
     return model
+
+
+def get_CNN_GRU_model(maxlen, max_features, number_filters, embed_size=300):
+    inp = Input(shape=(maxlen, ))
+    x = Embedding(max_features, embed_size)(inp)
+    x = Dropout(0.2)(x)
+    convs = []
+
+    for i, k_size in enumerate([1, 3, 5, 7]):
+        conv = Conv1D(filters=128, kernel_size=k_size, padding='same',
+                      activation='relu')(x)
+        convs.append(conv)
+
+    x = Concatenate()(convs)
+    x = MaxPooling1D()(x)
+
+    x = Conv1D(filters=64, kernel_size=3, padding='same',
+               activation='relu')(x)
+    x = MaxPooling1D()(x)
+
+    x = Bidirectional(GRU(128, return_sequences=True))(x)
+    x = GlobalMaxPool1D()(x)
+    x = Dropout(0.2)(x)
+    x = Dense(50, activation="relu")(x)
+    x = Dropout(0.2)(x)
+    x = Dense(6, activation="sigmoid")(x)
+
+    model = Model(inputs=inp, outputs=x)
+
+    model.compile(loss='binary_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['accuracy'])
+
+    return model
+
+

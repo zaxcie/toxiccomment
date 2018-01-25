@@ -36,4 +36,19 @@ January 6 notes
         Should look at plot, same as length
         Should also take care of populare word in category
 
+    By reading this paper https://nlp.stanford.edu/pubs/sidaw12_simple_sentiment.pdf,
+    I'm thinking I should try some other baseline such as
+
+    # Note Regarding W2V
+        I'm using fasttext and a zero vector if the word doesn't exist there...
+        Maybe I should use a random vector and let the embedding layer do its job?
+        Not sure of the effect...
+
+    # Note embeding layer
+        Should we train the mebeding layer or not? Not clear for me what would be best. Thinking about a paper about that
+        Paper could test with different benchmark dataset the effect difference between 4 things:
+            - Fast text as base, no train
+            - Fast text as base with train. Unkown as 0
+            - Fast text with online training for unknown
+            - Embeding from random init
 
