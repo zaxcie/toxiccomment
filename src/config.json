@@ -1,7 +1,0 @@
-{
-  "WordEmbedding":{
-    "Type": "FastText",
-    "Path": "/Users/kforest/workspace/toxiccomment/data/external/wiki.en.vec",
-    "Encoding": " utf-8"
-  }
-}
