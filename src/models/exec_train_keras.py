@@ -1,16 +1,12 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 
-import keras
 from keras import optimizers
-from keras import backend as K
 from keras import regularizers
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Dropout, Flatten
+from keras.layers import Dense, Dropout
 from keras.layers import Embedding, Conv1D, MaxPooling1D, GlobalMaxPooling1D
-from keras.utils import plot_model
 from keras.preprocessing import sequence
 from keras.preprocessing.text import Tokenizer
 from keras.callbacks import EarlyStopping
@@ -18,11 +14,10 @@ from keras.callbacks import EarlyStopping
 from tqdm import tqdm
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
-import os, re, csv, math, codecs
-from subprocess import check_output
+import codecs
 
 sns.set_style("whitegrid")
-np.random.seed(0)
+np.random.seed(966)
 
 DATA_PATH = '../input/'
 EMBEDDING_DIR = '../input/'
@@ -113,6 +108,8 @@ for word, i in word_index.items():
         embedding_matrix[i] = embedding_vector
     else:
         words_not_found.append(word)
+
+print(embedding_matrix)
 print('number of null word embeddings: %d' % np.sum(np.sum(embedding_matrix, axis=1) == 0))
 
 #CNN architecture
