@@ -5,7 +5,7 @@
     "Encoding": " utf-8"
   },
   "Seed": 966,
-  "MaxNbWords": 100000,
+  "MaxNbWords": 125000,
   "TrainDataPath": "/Users/kforest/workspace/toxiccomment/data/processed/train_split_80.csv",
   "ValDataPath": "/Users/kforest/workspace/toxiccomment/data/processed/val_split_80.csv",
   "TestDataPath": "/Users/kforest/workspace/toxiccomment/data/raw/test.csv"

@@ -17,6 +17,8 @@ from nltk.tokenize import RegexpTokenizer
 import codecs
 from src.utils import standard_parser
 from src.data.load import load_embedding, load_data
+from src.features.text import preprocess_df
+
 import json
 
 if __name__ == '__main__':
@@ -29,56 +31,41 @@ if __name__ == '__main__':
     np.random.seed(configuration["Seed"])
     max_nb_words = configuration["MaxNbWords"]
 
+    # TODO define somewhere else. Not sure where...
     tokenizer = RegexpTokenizer(r'\w+')
     stop_words = set(stopwords.words('english'))
     stop_words.update(['.', ',', '"', "'", ':', ';', '(', ')', '[', ']', '{', '}'])
 
-
-    #load embeddings
+    # load embeddings
     embeddings_index = load_embedding(configuration["WordEmbedding"])
 
-    #load data
+    # load data
     train_df = load_data(configuration["TrainDataPath"])
     val_df = load_data(configuration["ValDataPath"])
     test_df = load_data(configuration["TestDataPath"])
 
     label_names = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    num_classes = len(label_names)
     y_train = train_df[label_names].values
+    y_val = val_df[label_names].values
 
     train_df['doc_len'] = train_df['comment_text'].apply(lambda words: len(words.split(" ")))
     max_seq_len = np.round(train_df['doc_len'].mean() + train_df['doc_len'].std()).astype(int)
 
-    raw_docs_train = train_df['comment_text'].tolist()
-    raw_docs_val = val_df['comment_text'].tolist()
-    raw_docs_test = test_df['comment_text'].tolist()
-    num_classes = len(label_names)
+    processed_comments_train = preprocess_df(train_df, tokenizer=tokenizer, stop_words=stop_words)
+    processed_comments_val = preprocess_df(val_df, tokenizer=tokenizer, stop_words=stop_words)
+    processed_comments_test = preprocess_df(test_df, tokenizer=tokenizer, stop_words=stop_words)
 
-    print("pre-processing train data...")
-    processed_docs_train = []
-    for doc in tqdm(raw_docs_train):
-        tokens = tokenizer.tokenize(doc)
-        filtered = [word for word in tokens if word not in stop_words]
-        processed_docs_train.append(" ".join(filtered))
-    #end for
-
-    processed_docs_test = []
-    for doc in tqdm(raw_docs_test):
-        tokens = tokenizer.tokenize(doc)
-        filtered = [word for word in tokens if word not in stop_words]
-        processed_docs_test.append(" ".join(filtered))
-    #end for
-
-    print("tokenizing input data...")
     tokenizer = Tokenizer(num_words=max_nb_words, lower=True, char_level=False)
-    tokenizer.fit_on_texts(processed_docs_train + processed_docs_test)  # leaky
-    word_seq_train = tokenizer.texts_to_sequences(processed_docs_train)
-    word_seq_test = tokenizer.texts_to_sequences(processed_docs_test)
+    tokenizer.fit_on_texts(processed_comments_train + processed_comments_val + processed_comments_test)
+    X_train = tokenizer.texts_to_sequences(processed_comments_train)
+    X_val = tokenizer.texts_to_sequences(processed_comments_val)
+    X_test = tokenizer.texts_to_sequences(processed_comments_test)
     word_index = tokenizer.word_index
-    print("dictionary size: ", len(word_index))
 
     #pad sequences
-    word_seq_train = sequence.pad_sequences(word_seq_train, maxlen=max_seq_len)
-    word_seq_test = sequence.pad_sequences(word_seq_test, maxlen=max_seq_len)
+    X_train = sequence.pad_sequences(X_train, maxlen=max_seq_len)
+    X_test = sequence.pad_sequences(X_test, maxlen=max_seq_len)
 
     #training params
     batch_size = 256
@@ -129,10 +116,10 @@ if __name__ == '__main__':
     callbacks_list = [early_stopping]
 
     #model training
-    hist = model.fit(word_seq_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,
+    hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,
                      validation_split=0.1, shuffle=True, verbose=1)
 
-    y_test = model.predict(word_seq_test)
+    y_test = model.predict(X_test)
 
     #create a submission
     submission_df = pd.DataFrame(columns=['id'] + label_names)
