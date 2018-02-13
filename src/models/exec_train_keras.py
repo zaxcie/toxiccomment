@@ -18,6 +18,8 @@ import codecs
 from src.utils import standard_parser
 from src.data.load import load_embedding, load_data
 from src.features.text import preprocess_df
+from src.features.embedding import prepare_embedding_matrix
+from src.models import keras_util, keras_zoo
 
 import json
 
@@ -67,6 +69,7 @@ if __name__ == '__main__':
     X_train = sequence.pad_sequences(X_train, maxlen=max_seq_len)
     X_test = sequence.pad_sequences(X_test, maxlen=max_seq_len)
 
+    # TODO move everything to config file
     #training params
     batch_size = 256
     num_epochs = 8
@@ -78,48 +81,27 @@ if __name__ == '__main__':
 
     #embedding matrix
     print('preparing embedding matrix...')
-    words_not_found = []
-    nb_words = min(max_nb_words, len(word_index))
-    embedding_matrix = np.zeros((nb_words, embed_dim))
-    for word, i in word_index.items():
-        if i >= nb_words:
-            continue
-        embedding_vector = embeddings_index.get(word)
-        if (embedding_vector is not None) and len(embedding_vector) > 0:
-            # words not found in embedding index will be all-zeros.
-            embedding_matrix[i] = embedding_vector
-        else:
-            words_not_found.append(word)
-
-    print(embedding_matrix)
-    print('number of null word embeddings: %d' % np.sum(np.sum(embedding_matrix, axis=1) == 0))
+    embedding_matrix, nb_words = prepare_embedding_matrix(word_index, max_nb_words, embeddings_index, size=embed_dim)
 
     #CNN architecture
-    print("training CNN ...")
-    model = Sequential()
-    model.add(Embedding(nb_words, embed_dim,
-              weights=[embedding_matrix], input_length=max_seq_len, trainable=False))
-    model.add(Conv1D(num_filters, 7, activation='relu', padding='same'))
-    model.add(MaxPooling1D(2))
-    model.add(Conv1D(num_filters, 7, activation='relu', padding='same'))
-    model.add(GlobalMaxPooling1D())
-    model.add(Dropout(0.5))
-    model.add(Dense(32, activation='relu', kernel_regularizer=regularizers.l2(weight_decay)))
-    model.add(Dense(num_classes, activation='sigmoid'))  # multi-label (k-hot encoding)
+    # TODO move to Keras Zoo
+    # Note I'm wondering what would be the best way of specifying the model architecture... Commit every new
+    # architecture?... Having a ModelDB tag for commit? Would require a large number of commits...
 
-    adam = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-    model.compile(loss='binary_crossentropy', optimizer=adam, metrics=['accuracy'])
-    model.summary()
+    model = keras_zoo.get_CNN_model(nb_words, 300, embedding_matrix, 168)
+
 
     #define callbacks
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.01, patience=4, verbose=1)
-    callbacks_list = [early_stopping]
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=2, verbose=1)
+    auc_callback = keras_util.IntervalEvaluationROCAUCScore((X_val, y_val))
+    callbacks_list = [early_stopping, auc_callback]
 
     #model training
     hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,
-                     validation_split=0.1, shuffle=True, verbose=1)
+                     shuffle=False, verbose=1, validation_data=(X_val, y_val))
 
     y_test = model.predict(X_test)
+
 
     #create a submission
     submission_df = pd.DataFrame(columns=['id'] + label_names)

@@ -1,48 +1,34 @@
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Dense, Input, Conv2D, Embedding, Dropout, Activation, TimeDistributed, Conv1D, Concatenate
-from keras.layers import Bidirectional, MaxPooling1D, MaxPooling2D, Reshape, Flatten, concatenate, BatchNormalization, LSTM, GlobalMaxPool1D, GRU
-from keras.models import Model
+from keras.layers import Bidirectional, MaxPooling1D, MaxPooling2D, Reshape, Flatten, concatenate
+from keras.layers import BatchNormalization, LSTM, GlobalMaxPool1D, GRU, GlobalMaxPooling1D
+from keras.models import Model, Sequential
 from keras import initializers, regularizers, constraints, optimizers, layers, backend
 
 
-def get_CNN_model(maxlen, max_features, embed_size, number_filters):
-    inp = Input(shape=(1, maxlen, ))
-    x = Embedding(max_features, embed_size)(inp)
-    x1 = Conv2D(number_filters, (3, embed_size), data_format='channels_first')(x)
-    x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
-    x1 = MaxPooling2D((int(int(x1.shape[2]) / 1.5), 1), data_format='channels_first')(x1)
-    x1 = Flatten()(x1)
+def get_CNN_model(nb_words, embed_size, embedding_matrix, seq_len, num_classes=6):
+    # hyper-parameters
+    # Note I'm trying to figuring out a better way to save model architecture and connect with ModelDB.
+    # For now, the best way seems to hard code them here and attach partial model architecture to ModelDB and
+    # save complete model architecture to model folder.
+    num_filters = 64
+    weight_decay = 1e-4
 
-    x2 = Conv2D(number_filters, (4, embed_size), data_format='channels_first')(x)
-    x2 = BatchNormalization()(x2)
-    x2 = Activation('elu')(x2)
-    x2 = MaxPooling2D((int(int(x2.shape[2]) / 1.5), 1), data_format='channels_first')(x2)
-    x2 = Flatten()(x2)
+    model = Sequential()
+    model.add(Embedding(nb_words, embed_size,
+                        weights=[embedding_matrix], input_length=seq_len, trainable=False))
+    model.add(Conv1D(num_filters, 7, activation='relu', padding='same'))
+    model.add(MaxPooling1D(2))
+    model.add(Conv1D(num_filters, 7, activation='relu', padding='same'))
+    model.add(GlobalMaxPooling1D())
+    model.add(Dropout(0.5))
+    model.add(Dense(32, activation='relu', kernel_regularizer=regularizers.l2(weight_decay)))
+    model.add(Dense(num_classes, activation='sigmoid'))  # multi-label (k-hot encoding)
 
-    x3 = Conv2D(number_filters, (5, embed_size), data_format='channels_first')(x)
-    x3 = BatchNormalization()(x3)
-    x3 = Activation('relu')(x3)
-    x3 = MaxPooling2D((int(int(x3.shape[2]) / 1.5), 1), data_format='channels_first')(x3)
-    x3 = Flatten()(x3)
-
-    x4 = Conv2D(number_filters, (6, embed_size), data_format='channels_first')(x)
-    x4 = BatchNormalization()(x4)
-    x4 = Activation('elu')(x4)
-    x4 = MaxPooling2D((int(int(x4.shape[2]) / 1.5), 1), data_format='channels_first')(x4)
-    x4 = Flatten()(x4)
-
-    x5 = Conv2D(number_filters, (7, embed_size), data_format='channels_first')(x)
-    x5 = BatchNormalization()(x5)
-    x5 = Activation('relu')(x5)
-    x5 = MaxPooling2D((int(int(x5.shape[2]) / 1.5), 1), data_format='channels_first')(x5)
-    x5 = Flatten()(x5)
-
-    x = concatenate([x1, x2, x3, x4, x5])
-    x = Dense(6, activation="sigmoid")(x)
-    model = Model(inputs=inp, outputs=x)
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    adam = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    model.compile(loss='binary_crossentropy', optimizer=adam, metrics=['accuracy'])
+    model.summary()
 
     return model
 
