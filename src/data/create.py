@@ -33,11 +33,13 @@ def add_modeldb_entry(config, saved_model_info):
     }
 
     # create the Model, ModelConfig, and ModelMetrics instances
-    model = "model_obj"
-    model_type = "NN"
+    model = saved_model_info["ModelName"]
+    model_type = config["ModelType"]
     mdb_model1 = Model(model_type, model, "/path/to/model1")
-    model_config1 = ModelConfig(model_type, {"l1": 10})
-    model_metrics1 = ModelMetrics({"accuracy": 0.8})
+    model_config1 = ModelConfig(model_type)
+    model_metrics1 = ModelMetrics({"accuracy": saved_model_info["accuracy"],
+                                   "loss": saved_model_info["loss"],
+                                   "AUC": saved_model_info["AUC"]})
 
     # sync the datasets to modeldb
     syncer_obj.sync_datasets(datasets)

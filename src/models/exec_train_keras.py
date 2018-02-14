@@ -10,6 +10,7 @@ from nltk.tokenize import RegexpTokenizer
 
 from src.utils import standard_parser, save_as_pickled_object, try_to_load_as_pickled_object_or_None
 from src.data.load import load_embedding, load_data
+from src.data.create import *
 from src.features.text import preprocess_df
 from src.features.embedding import prepare_embedding_matrix
 from src.models import keras_util, keras_zoo
@@ -25,6 +26,8 @@ if __name__ == '__main__':
 
     np.random.seed(configuration["Seed"])
     max_nb_words = configuration["MaxNbWords"]
+
+    model_name = create_model(configuration)
 
     # TODO define somewhere else. Not sure where...
     tokenizer = RegexpTokenizer(r'\w+')
@@ -101,12 +104,15 @@ if __name__ == '__main__':
     hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,
                      shuffle=False, verbose=1, validation_data=(X_val, y_val))
 
-    y_test = model.predict(X_test)
+    write_path = configuration["ModelPath"] + model_name + "/"
+    with open(write_path + "model_architecture.json", 'w') as f:
+        json.dump(model.to_json(), f)
 
+    model.save_weights(write_path + "model_weight_final.h5")
 
-    #create a submission
-    submission_df = pd.DataFrame(columns=['id'] + label_names)
-    submission_df['id'] = test_df['id'].values
-    submission_df[label_names] = y_test
-    submission_df.to_csv("../cnn_fasttext_submission.csv", index=False)
+    y_hat_test = model.predict(X_test)
+
+    create_submission(test_df, y_hat_test, write_path, label_names)
+
+    # add_modeldb_entry(config, saved_model_info)
 

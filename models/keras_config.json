@@ -12,5 +12,6 @@
   "ModelDBProjectName": "Toxic Comment",
   "ModelDBProjectAuthor": "kforest",
   "ModelDBProjectDescription": "Toxic Comment - Kaggle competition",
-  "ModelPath": "/Users/kforest/workspace/toxiccomment/models"
+  "ModelPath": "/Users/kforest/workspace/toxiccomment/models/",
+  "ModelType": "Keras_CNN"
 }
