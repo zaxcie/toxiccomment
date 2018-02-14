@@ -1,7 +1,7 @@
 {
   "WordEmbedding":{
     "Type": "Processed",
-    "Path": "/Users/kforest/workspace/toxiccomment/data/external/embedding_index.pickle"
+    "Path": "/Users/kforest/workspace/toxiccomment/data/external/save_as_pickled_object.pickle"
   },
   "Seed": 966,
   "MaxNbWords": 125000,
@@ -12,6 +12,5 @@
   "ModelDBProjectAuthor": "kforest",
   "ModelDBProjectDescription": "Toxic Comment - Kaggle competition",
   "ModelPath": "/Users/kforest/workspace/toxiccomment/models/",
-  "ModelType": "Keras_CNN",
-  "EmbeddingIndexPath": "/Users/kforest/workspace/toxiccomment/data/external/embedding_index.pickle"
+  "ModelType": "Keras_CNN"
 }

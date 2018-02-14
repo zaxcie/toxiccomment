@@ -152,25 +152,15 @@ def get_ensemble_NN_model(maxlen, max_features, number_filters, embed_size=64):
     return model
 
 
-def get_CNN_GRU_model(maxlen, max_features, number_filters, embed_size=300):
-    inp = Input(shape=(maxlen, ))
-    x = Embedding(max_features, embed_size)(inp)
+def get_CNN_GRU_model(seq_len, nb_words, embedding_matrix, embed_size=300):
+    inp = Input(shape=(seq_len,))
+    x = Embedding(nb_words, embed_size, weights=[embedding_matrix])(inp)
     x = Dropout(0.2)(x)
-    convs = []
-
-    for i, k_size in enumerate([1, 3, 5, 7]):
-        conv = Conv1D(filters=128, kernel_size=k_size, padding='same',
-                      activation='relu')(x)
-        convs.append(conv)
-
-    x = Concatenate()(convs)
-    x = MaxPooling1D()(x)
-
-    x = Conv1D(filters=64, kernel_size=3, padding='same',
+    x = Conv1D(filters=64, kernel_size=5, padding='same',
                activation='relu')(x)
     x = MaxPooling1D()(x)
 
-    x = Bidirectional(GRU(128, return_sequences=True))(x)
+    x = Bidirectional(GRU(128, return_sequences=True, activation='relu'))(x)
     x = GlobalMaxPool1D()(x)
     x = Dropout(0.2)(x)
     x = Dense(50, activation="relu")(x)

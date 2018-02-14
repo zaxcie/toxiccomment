@@ -82,7 +82,7 @@ if __name__ == '__main__':
     # Note I'm wondering what would be the best way of specifying the model architecture... Commit every new
     # architecture?... Having a ModelDB tag for commit? Would require a large number of commits...
 
-    model = keras_zoo.get_CNN_model(nb_words, 300, embedding_matrix, max_seq_len)
+    model = keras_zoo.get_CNN_GRU_model(max_seq_len, nb_words, embedding_matrix, 300)
 
     write_path = configuration["ModelPath"] + model_name + "/"
     #define callbacks

@@ -5,7 +5,7 @@ import pandas as pd
 from src.utils import save_as_pickled_object, try_to_load_as_pickled_object_or_None
 
 
-def load_embedding(word_embedding, config, verbose=True):
+def load_embedding(word_embedding, verbose=True):
     '''
     Load a word embedding based on a WordEmbedding config
     :param word_embedding: Dictionnary. Contain a Type. Type should be one of FastText, Glove, W2V. Depending on
@@ -13,15 +13,19 @@ def load_embedding(word_embedding, config, verbose=True):
     :param verbose: Boolean. Wether to to verbose of the loading
     :return: Dictionnary of words with their embedding
     '''
+
+    # TODO add more documentation regarding embedding possibility
+
     POSSIBLE_TYPE = ["Processed", "FastText", "Glove", "W2V", "Random"]
+
     if word_embedding['Type'] == "Processed":
-        embeddings_index = try_to_load_as_pickled_object_or_None(config["EmbeddingIndexPath"])
+        embeddings_index = try_to_load_as_pickled_object_or_None(word_embedding["Path"])
 
         return embeddings_index
 
     if word_embedding['Type'] == "FastText":
         embeddings_index = {}
-        f = codecs.open("/Users/kforest/workspace/toxiccomment/data/external/wiki.en.vec",
+        f = codecs.open(word_embedding["Path"],
                         encoding=word_embedding["Encoding"])
 
         for line in tqdm(f, disable=not verbose):
