@@ -2,9 +2,10 @@ import codecs
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
+from src.utils import save_as_pickled_object, try_to_load_as_pickled_object_or_None
 
 
-def load_embedding(word_embedding, verbose=True):
+def load_embedding(word_embedding, config, verbose=True):
     '''
     Load a word embedding based on a WordEmbedding config
     :param word_embedding: Dictionnary. Contain a Type. Type should be one of FastText, Glove, W2V. Depending on
@@ -12,7 +13,12 @@ def load_embedding(word_embedding, verbose=True):
     :param verbose: Boolean. Wether to to verbose of the loading
     :return: Dictionnary of words with their embedding
     '''
-    POSSIBLE_TYPE = ["FastText", "Glove", "W2V", "Random"]
+    POSSIBLE_TYPE = ["Processed", "FastText", "Glove", "W2V", "Random"]
+    if word_embedding['Type'] == "Processed":
+        embeddings_index = try_to_load_as_pickled_object_or_None(config["EmbeddingIndexPath"])
+
+        return embeddings_index
+
     if word_embedding['Type'] == "FastText":
         embeddings_index = {}
         f = codecs.open("/Users/kforest/workspace/toxiccomment/data/external/wiki.en.vec",
@@ -24,6 +30,9 @@ def load_embedding(word_embedding, verbose=True):
             coefs = np.asarray(values[1:], dtype='float32')
             embeddings_index[word] = coefs
         f.close()
+
+        if word_embedding['Save']:
+            save_as_pickled_object(embeddings_index, word_embedding['OutputFile'])
 
         return embeddings_index
 

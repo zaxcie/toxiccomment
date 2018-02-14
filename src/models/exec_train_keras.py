@@ -3,7 +3,7 @@ import pandas as pd
 
 from keras.preprocessing import sequence
 from keras.preprocessing.text import Tokenizer
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, TensorBoard
 
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
@@ -35,11 +35,7 @@ if __name__ == '__main__':
     stop_words.update(['.', ',', '"', "'", ':', ';', '(', ')', '[', ']', '{', '}'])
 
     # load embeddings
-    #embeddings_index = load_embedding(configuration["WordEmbedding"])
-    #save_as_pickled_object(embeddings_index, "save_as_pickled_object.pickle")
-
-    # TODO move that to config file
-    embeddings_index = try_to_load_as_pickled_object_or_None("/Users/kforest/workspace/toxiccomment/save_as_pickled_object.pickle")
+    embeddings_index = load_embedding(configuration["WordEmbedding"])
 
     # load data
     train_df = load_data(configuration["TrainDataPath"])
@@ -81,20 +77,18 @@ if __name__ == '__main__':
     weight_decay = 1e-4
 
     #embedding matrix
-    print('preparing embedding matrix...')
     embedding_matrix, nb_words = prepare_embedding_matrix(word_index, max_nb_words, embeddings_index, size=embed_dim)
 
-    #CNN architecture
-    # TODO move to Keras Zoo
     # Note I'm wondering what would be the best way of specifying the model architecture... Commit every new
     # architecture?... Having a ModelDB tag for commit? Would require a large number of commits...
 
     model = keras_zoo.get_CNN_model(nb_words, 300, embedding_matrix, max_seq_len)
 
-
+    write_path = configuration["ModelPath"] + model_name + "/"
     #define callbacks
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=2, verbose=1)
     auc_callback = keras_util.IntervalEvaluationROCAUCScore((X_val, y_val))
+    tb = TensorBoard(log_dir=write_path)
     callbacks_list = [early_stopping, auc_callback]
 
     print(X_train.shape)
@@ -104,7 +98,7 @@ if __name__ == '__main__':
     hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,
                      shuffle=False, verbose=1, validation_data=(X_val, y_val))
 
-    write_path = configuration["ModelPath"] + model_name + "/"
+
     with open(write_path + "model_architecture.json", 'w') as f:
         json.dump(model.to_json(), f)
 
