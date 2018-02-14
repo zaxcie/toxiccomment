@@ -8,5 +8,9 @@
   "MaxNbWords": 125000,
   "TrainDataPath": "/Users/kforest/workspace/toxiccomment/data/processed/train_split_80.csv",
   "ValDataPath": "/Users/kforest/workspace/toxiccomment/data/processed/val_split_80.csv",
-  "TestDataPath": "/Users/kforest/workspace/toxiccomment/data/raw/test.csv"
+  "TestDataPath": "/Users/kforest/workspace/toxiccomment/data/raw/test.csv",
+  "ModelDBProjectName": "Toxic Comment",
+  "ModelDBProjectAuthor": "kforest",
+  "ModelDBProjectDescription": "Toxic Comment - Kaggle competition",
+  "ModelPath": "/Users/kforest/workspace/toxiccomment/models"
 }

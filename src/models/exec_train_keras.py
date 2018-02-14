@@ -1,30 +1,23 @@
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
-from keras import optimizers
-from keras import regularizers
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
-from keras.layers import Embedding, Conv1D, MaxPooling1D, GlobalMaxPooling1D
 from keras.preprocessing import sequence
 from keras.preprocessing.text import Tokenizer
 from keras.callbacks import EarlyStopping
 
-from tqdm import tqdm
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
-import codecs
-from src.utils import standard_parser
+
+from src.utils import standard_parser, save_as_pickled_object, try_to_load_as_pickled_object_or_None
 from src.data.load import load_embedding, load_data
 from src.features.text import preprocess_df
 from src.features.embedding import prepare_embedding_matrix
 from src.models import keras_util, keras_zoo
-
+from modeldb.basic.ModelDbSyncerBase import *
 import json
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     options, args = standard_parser()
 
     with open(options.config, "rb") as f:
@@ -39,7 +32,11 @@ if __name__ == '__main__':
     stop_words.update(['.', ',', '"', "'", ':', ';', '(', ')', '[', ']', '{', '}'])
 
     # load embeddings
-    embeddings_index = load_embedding(configuration["WordEmbedding"])
+    #embeddings_index = load_embedding(configuration["WordEmbedding"])
+    #save_as_pickled_object(embeddings_index, "save_as_pickled_object.pickle")
+
+    # TODO move that to config file
+    embeddings_index = try_to_load_as_pickled_object_or_None("/Users/kforest/workspace/toxiccomment/save_as_pickled_object.pickle")
 
     # load data
     train_df = load_data(configuration["TrainDataPath"])
@@ -67,6 +64,7 @@ if __name__ == '__main__':
 
     #pad sequences
     X_train = sequence.pad_sequences(X_train, maxlen=max_seq_len)
+    X_val= sequence.pad_sequences(X_val, maxlen=max_seq_len)
     X_test = sequence.pad_sequences(X_test, maxlen=max_seq_len)
 
     # TODO move everything to config file
@@ -88,13 +86,16 @@ if __name__ == '__main__':
     # Note I'm wondering what would be the best way of specifying the model architecture... Commit every new
     # architecture?... Having a ModelDB tag for commit? Would require a large number of commits...
 
-    model = keras_zoo.get_CNN_model(nb_words, 300, embedding_matrix, 168)
+    model = keras_zoo.get_CNN_model(nb_words, 300, embedding_matrix, max_seq_len)
 
 
     #define callbacks
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=2, verbose=1)
     auc_callback = keras_util.IntervalEvaluationROCAUCScore((X_val, y_val))
     callbacks_list = [early_stopping, auc_callback]
+
+    print(X_train.shape)
+    print(X_val.shape)
 
     #model training
     hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,

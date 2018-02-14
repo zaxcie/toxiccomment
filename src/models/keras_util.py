@@ -14,4 +14,4 @@ class IntervalEvaluationROCAUCScore(Callback):
         if epoch % self.interval == 0:
             y_pred = self.model.predict_proba(self.X_val, verbose=0)
             score = roc_auc_score(self.y_val, y_pred)
-            logging.info("Interval evaluation - epoch: {:d} - roc_auc: {:.6f}".format(epoch, score))
+            print("Interval evaluation - epoch: {:d} - roc_auc: {:.6f}".format(epoch, score))
