@@ -5,7 +5,7 @@
   },
   "Seed": 966,
   "MaxNbWords": 125000,
-  "TrainDataPath": "/Users/kforest/workspace/toxiccomment/data/processed/train_split_80.csv",
+  "TrainDataPath": "/Users/kforest/workspace/toxiccomment/data/raw/train.csv",
   "ValDataPath": "/Users/kforest/workspace/toxiccomment/data/processed/val_split_80.csv",
   "TestDataPath": "/Users/kforest/workspace/toxiccomment/data/raw/test.csv",
   "ModelDBProjectName": "Toxic Comment",

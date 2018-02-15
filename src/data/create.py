@@ -2,9 +2,10 @@ import pandas as pd
 import os
 from modeldb.basic.ModelDbSyncerBase import *
 from datetime import datetime
+from sklearn.model_selection import KFold
 
 
-def create_submission(df, y_hat, path, label_names, file_name = "submission.csv"):
+def create_submission(df, y_hat, path, label_names, file_name="submission.csv"):
     write_path = path + file_name
 
     submission_df = pd.DataFrame(columns=['id'] + label_names)
@@ -12,6 +13,7 @@ def create_submission(df, y_hat, path, label_names, file_name = "submission.csv"
     submission_df[label_names] = y_hat
     submission_df.to_csv(write_path, index=False)
 
+# TODO write fold prob function
 
 def create_model(config):
     model_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -51,3 +53,4 @@ def add_modeldb_entry(config, saved_model_info):
     syncer_obj.sync_metrics("test", mdb_model1, model_metrics1)
 
     syncer_obj.sync()
+

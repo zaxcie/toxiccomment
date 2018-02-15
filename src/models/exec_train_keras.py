@@ -16,6 +16,7 @@ from src.features.embedding import prepare_embedding_matrix
 from src.models import keras_util, keras_zoo
 from modeldb.basic.ModelDbSyncerBase import *
 import json
+from sklearn.model_selection import KFold
 
 
 if __name__ == '__main__':
@@ -63,7 +64,9 @@ if __name__ == '__main__':
 
     #pad sequences
     X_train = sequence.pad_sequences(X_train, maxlen=max_seq_len)
-    X_val= sequence.pad_sequences(X_val, maxlen=max_seq_len)
+    print(X_train)
+    print(X_train.shape)
+    X_val = sequence.pad_sequences(X_val, maxlen=max_seq_len)
     X_test = sequence.pad_sequences(X_test, maxlen=max_seq_len)
 
     # TODO move everything to config file
@@ -85,28 +88,36 @@ if __name__ == '__main__':
     model = keras_zoo.get_CNN_GRU_model(max_seq_len, nb_words, embedding_matrix, 300)
 
     write_path = configuration["ModelPath"] + model_name + "/"
-    #define callbacks
+
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=2, verbose=1)
     auc_callback = keras_util.IntervalEvaluationROCAUCScore((X_val, y_val))
     tb = TensorBoard(log_dir=write_path)
     callbacks_list = [early_stopping, auc_callback]
 
-    print(X_train.shape)
-    print(X_val.shape)
+    nb_folds = 10
+
+    kf = KFold(n_splits=nb_folds)
+    k = 1
+    preds = None
+    for train, test in kf.split(X_train):
+        hist = model.fit(X_train[train], y_train[train], batch_size=batch_size, epochs=num_epochs,
+                         callbacks=callbacks_list, shuffle=False, verbose=1,
+                         validation_data=(X_train[test], y_train[test]))
+
+        y_hat_test = model.predict(X_train[test])
+
+        if k == 1:
+            preds = y_hat_test
+        else:
+            preds = np.concatenate((preds, y_hat_test))
+
+        k += 1
+
+    keras_util.write_model_to_disk(write_path, model, configuration, preds, label_names, test_df,
+                                   filename="train_preds_noleak.csv")
 
     #model training
-    hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=num_epochs, callbacks=callbacks_list,
-                     shuffle=False, verbose=1, validation_data=(X_val, y_val))
 
-
-    with open(write_path + "model_architecture.json", 'w') as f:
-        json.dump(model.to_json(), f)
-
-    model.save_weights(write_path + "model_weight_final.h5")
-
-    y_hat_test = model.predict(X_test)
-
-    create_submission(test_df, y_hat_test, write_path, label_names)
 
     # add_modeldb_entry(config, saved_model_info)
 
